@@ -1,13 +1,13 @@
 % script to reproduce plots in
 % Dunham, E. M., Fluid-driven aseismic fault slip with permeability enhancement and dilatancy, submitted.
 
-savePlots = true; % set to true to save .eps figures
+savePlots = false; % set to true to save .eps figures
 
 epsilon = [0 1 10 100]; M = length(epsilon);
 lambda = logspace(-2,1,10000)'; N = length(lambda);
 T2 = zeros(N,M); T2_BV = zeros(N,1);
 T3 = zeros(N,M); T2_SL = zeros(N,1);
-T3lambdaSmall = zeros(N,M);
+T2lambdaSmall = zeros(N,M); T3lambdaSmall = zeros(N,M);
 
 for m=1:M
     for n=1:N
@@ -20,12 +20,13 @@ for m=1:M
         if isnan(T3(n,m)), T3(n,m)=-n; end % need value for interpolation
         if isinf(T2(n,m)), T2(n,m)=-n; end % need value for interpolation
         if isinf(T3(n,m)), T3(n,m)=-n; end % need value for interpolation
+        T2lambdaSmall(n,m) = 1-4/pi*(1+epsilon(m))*lambda(n)^2; % asymptotics
         T3lambdaSmall(n,m) = 1/lambda(n)^2+1-epsilon(m)-log(4); % asymptotics
     end
 end
 
 figure(1),clf
-semilogx(lambda,T2,lambda,T2_BV,'--')
+semilogx(lambda,T2,lambda,T2_BV,'--',lambda,T2lambdaSmall,'k--')
 xlabel('\lambda = a(t)/(4\alphat)^{1/2}')
 ylabel('stress-injection parameter, T')
 ylim([0 1])
@@ -113,7 +114,7 @@ if savePlots,print -depsc2 tau3D, end
 
 % repeat 3D for larger T
 
-Tplot3D = 16;
+Tplot3D = 30;
 for m=1:M
     la3(m) = interp1(T3(:,m),lambda,Tplot3D);
     g3(:,m) = fluidDrivenAseismicSlip.evalG3(xi,la3(m),epsilon(m));
@@ -148,13 +149,18 @@ T = [1 3 10 30]; nT = length(T);
 for n=1:nT
     la3T(n) = interp1(T3(:,1),lambda,T(n));
     g3T(:,n) = fluidDrivenAseismicSlip.evalG3(xi,la3T(n),0);
+    g3TsmallLambda(:,n) = fluidDrivenAseismicSlip.evalG3smallLambda(xi,la3T(n),0);
 end
 g3T(I(end)+1,:) = 0;
+g3TsmallLambda(I(end)+1,:) = 0;
 
 figure(9)
 for n=1:nT
     plot(xi,g3T(:,n)/T(n))
     if n==1,hold on,end
+end
+for n=1:nT
+    plot(xi,g3TsmallLambda(:,n)/T(n),'k--')
 end
 hold off
 xlabel('\xi = r / \lambda(4\alphat)^{1/2}')
@@ -165,16 +171,15 @@ title('3D constant rate injection, \epsilon = 0')
 ylim([0 5]),xlim([0 1.2])
 if savePlots,print -depsc2 p3D_varyT, end
 
-%la3_SL = interp1(T3_SL,lambda,Tplot3D);
-%g3_SL = fluidDrivenAseismicSlip.evalG3_SL(xi,la3_SL);
-%g3_SL(I(end)+1) = 0;
-
 figure(10)
 for n=1:nT
     plot([xi*la3T(n); 1.2],[g3T(:,n); 0])
     if n==1,hold on,end
 end
 plot(xi*la3_SL,g3_SL,'--')
+for n=1:nT
+    plot([xi*la3T(n); 1.2],[g3TsmallLambda(:,n); 0],'k--')
+end
 hold off
 xlabel('r/(4\alphat)^{1/2}')
 ylabel('pressure change, p/\Deltap = g(\xi)')
@@ -185,17 +190,3 @@ title('3D constant rate injection, \epsilon = 0')
 ylim([0 40]),xlim([0 1.2])
 if savePlots,print -depsc2 p3D_varyT3_alt, end
 
-% Cooper Basin estimates for 2012 stimulation of Habanero 4 well
-
-CB.Q = 0.025; % 25 L/s
-CB.k = 2e-13;
-CB.eta = 4e-4;
-CB.w = 6;
-CB.Deltap = CB.Q*CB.eta/(4*pi*CB.k*CB.w)*1e-6;
-CB.tau = 10.3;
-CB.sigmaprime = 28;
-CB.f = 0.6;
-CB.T = (CB.f*CB.sigmaprime-CB.tau)/(CB.f*CB.Deltap);
-disp('Cooper Basin:')
-disp(['Deltap = ' num2str(CB.Deltap) ' MPa'])
-disp(['T = ' num2str(CB.T)])

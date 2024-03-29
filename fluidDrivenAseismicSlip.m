@@ -1,3 +1,6 @@
+% class implementing solutions in
+% Dunham, E. M., Fluid-driven aseismic fault slip with permeability enhancement and dilatancy, submitted.
+
 classdef fluidDrivenAseismicSlip
 
     methods(Static)
@@ -32,6 +35,11 @@ classdef fluidDrivenAseismicSlip
             g(xi>1) = 0;
         end
         
+        function g = evalG3smallLambda(xi,lambda,epsilon)
+            g = 1./lambda.^2-1-log(xi.^2)-epsilon;
+            g(xi>1) = 0;
+        end
+
         function T = evalT3(lambda,epsilon)
             %T = integral(@(xi) fluidDrivenAseismicSlip.evalG3(xi,lambda,epsilon).*xi./sqrt(1-xi.^2),0,1);
             T = integral(@(z) fluidDrivenAseismicSlip.evalG3(cos(z),lambda,epsilon).*cos(z),0,pi/2);
